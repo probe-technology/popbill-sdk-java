@@ -1,11 +1,8 @@
-popbill.sdk.java
-================
+# Popbill SDK Java - Customized by Probe
 
-팝빌 통합 SDK for JAVA
-
-
-		<dependency>
-			<groupId>kr.co.linkhub</groupId>
-			<artifactId>popbill-sdk</artifactId>
-			<version>1.3.4</version>
-		</dependency>
+## REST Response Codes
+Code | Description
+-- | --
+-10001003 | 해당아이디는 사용중 입니다.
+0 | false
+1 | true
