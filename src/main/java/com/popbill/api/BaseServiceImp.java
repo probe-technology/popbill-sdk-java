@@ -410,49 +410,10 @@ public abstract class BaseServiceImp implements BaseService {
 			}
 
 		}
-		String Result = "";
 
-		InputStream is = null;
-		try {
-			is = httpURLConnection.getInputStream();
-			if (httpURLConnection.getContentEncoding().equals("gzip")) {
-				Result = fromGzipStream(is);
-			} else {
-				Result = fromStream(is);
-			}
-		} catch (IOException e) {
-			ErrorResponse error = null;
-			InputStream errorIs = null;
-			try {
-				errorIs = httpURLConnection.getErrorStream();
-				Result = fromStream(errorIs);
-				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception ignored) { } finally {
-				try {
-					if(errorIs != null) {
-						errorIs.close();
-					}
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
+		String result = parseRespose(httpURLConnection);
 
-			if (error == null)
-				throw new PopbillException(-99999999,
-						"Fail to receive data from Server.", e);
-			else
-				throw new PopbillException(error.getCode(), error.getMessage());
-		} finally {
-			try {
-				if (is != null) {
-					is.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return fromJsonString(Result, clazz);
+		return fromJsonString(result, clazz);
 	}
 
 	private static final String boundary = "--u489jwe98j3498j394r23450--";
@@ -564,51 +525,9 @@ public abstract class BaseServiceImp implements BaseService {
 			}
 		}
 
-		String Result = "";
+		String result = parseRespose(httpURLConnection);
 
-		InputStream input = null;
-		try {
-			input = httpURLConnection.getInputStream();
-			if (httpURLConnection.getContentEncoding().equals("gzip")) {
-				Result = fromGzipStream(input);
-			}else {
-				Result = fromStream(input);
-			}
-		} catch (IOException e) {
-
-			ErrorResponse error = null;
-
-			InputStream errorIs = null;
-			try {
-				errorIs = httpURLConnection.getErrorStream();
-				Result = fromStream(errorIs);
-				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception ignored) { } finally {
-				try {
-					if (errorIs != null) {
-						errorIs.close();
-					}
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
-
-			if (error == null)
-				throw new PopbillException(-99999999,
-						"Fail to receive data from Server.", e);
-			else
-				throw new PopbillException(error.getCode(), error.getMessage());
-		} finally {
-			try {
-				if (input != null) {
-					input.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return fromJsonString(Result, clazz);
+		return fromJsonString(result, clazz);
 	}
 
 	/**
@@ -645,51 +564,9 @@ public abstract class BaseServiceImp implements BaseService {
 		httpURLConnection.setRequestProperty("Accept-Encoding",
 				"gzip");
 
-		String Result = "";
+		String result = parseRespose(httpURLConnection);
 
-		InputStream input = null;
-		try {
-			input = httpURLConnection.getInputStream();
-			if (httpURLConnection.getContentEncoding().equals("gzip")) {
-				Result = fromGzipStream(input);
-			}else {
-				Result = fromStream(input);
-			}
-		} catch (IOException e) {
-
-			ErrorResponse error = null;
-
-			InputStream errorIs = null;
-			try {
-				errorIs = httpURLConnection.getErrorStream();
-				Result = fromStream(errorIs);
-				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception ignored) { } finally {
-				try {
-					if (errorIs != null) {
-						errorIs.close();
-					}
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
-
-			if (error == null)
-				throw new PopbillException(-99999999,
-						"Fail to receive data from Server.", e);
-			else
-				throw new PopbillException(error.getCode(), error.getMessage());
-		} finally {
-			try {
-				if (input != null) {
-					input.close();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return fromJsonString(Result, clazz);
+		return fromJsonString(result, clazz);
 	}
 
 	protected abstract List<String> getScopes();
@@ -760,6 +637,57 @@ public abstract class BaseServiceImp implements BaseService {
 		}
 
 		return sb.toString();
+	}
+
+	private String parseRespose(HttpURLConnection httpURLConnection) throws PopbillException {
+		String result = "";
+		InputStream input = null;
+		PopbillException exception = null;
+
+		try {
+			input = httpURLConnection.getInputStream();
+			if (httpURLConnection.getContentEncoding().equals("gzip")) {
+				result = fromGzipStream(input);
+			}else {
+				result = fromStream(input);
+			}
+		} catch (IOException e) {
+			InputStream errorIs = null;
+			ErrorResponse error = null;
+
+			try {
+				errorIs = httpURLConnection.getErrorStream();
+				result = fromStream(errorIs);
+				error = fromJsonString(result, ErrorResponse.class);
+			} catch (Exception ignored) { } finally {
+				try {
+					if (errorIs != null) {
+						errorIs.close();
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+
+			if (error == null)
+				exception =  new PopbillException(-99999999,
+						"Fail to receive data from Server.", e);
+			else
+				exception = new PopbillException(error.getCode(), error.getMessage());
+		} finally {
+			try {
+				if (input != null) {
+					input.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		if(exception != null)
+			throw exception;
+
+		return result;
 	}
 
 }
