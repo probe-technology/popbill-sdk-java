@@ -669,11 +669,12 @@ public abstract class BaseServiceImp implements BaseService {
 				}
 			}
 
-			if (error == null)
-				exception =  new PopbillException(-99999999,
+			if (error == null) {
+				exception = new PopbillException(-99999999,
 						"Fail to receive data from Server.", e);
-			else
+			} else {
 				exception = new PopbillException(error.getCode(), error.getMessage());
+			}
 		} finally {
 			try {
 				if (input != null) {
