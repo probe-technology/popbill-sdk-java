@@ -273,7 +273,7 @@ public abstract class BaseServiceImp implements BaseService {
 	 */
 	@Override
 	public Response checkID(String CheckID) throws PopbillException {
-		
+
 		return httpget("/IDCheck?ID="+CheckID, null, null, Response.class);
 	}
 	
@@ -282,7 +282,7 @@ public abstract class BaseServiceImp implements BaseService {
 	 */
 	@Override
 	public CorpInfo getCorpInfo(String CorpNum, String UserID) throws PopbillException {
-		
+
 		return httpget("/CorpInfo", CorpNum, UserID, CorpInfo.class);
 	}
 	
@@ -354,7 +354,7 @@ public abstract class BaseServiceImp implements BaseService {
 			throw new PopbillException(-99999999, "팝빌 API 서버 접속 실패", e);
 		}
 
-		if (CorpNum != null && CorpNum.isEmpty() == false) {
+		if (CorpNum != null && !CorpNum.isEmpty()) {
 			httpURLConnection.setRequestProperty("Authorization", "Bearer "
 					+ getSessionToken(CorpNum, null));
 		}
@@ -362,7 +362,7 @@ public abstract class BaseServiceImp implements BaseService {
 		httpURLConnection.setRequestProperty("x-pb-version".toLowerCase(),
 				APIVersion);
 
-		if (Action != null && Action.isEmpty() == false) {
+		if (Action != null && !Action.isEmpty()) {
 			httpURLConnection.setRequestProperty("X-HTTP-Method-Override",
 					Action);
 		}
@@ -373,58 +373,68 @@ public abstract class BaseServiceImp implements BaseService {
 		httpURLConnection.setRequestProperty("Accept-Encoding",
 				"gzip");
 
-		if (UserID != null && UserID.isEmpty() == false) {
+		if (UserID != null && !UserID.isEmpty()) {
 			httpURLConnection.setRequestProperty("x-pb-userid", UserID);
 		}
 
 		try {
 			httpURLConnection.setRequestMethod("POST");
-		} catch (ProtocolException e1) {
-		}
+		} catch (ProtocolException ignored) {}
 
 		httpURLConnection.setUseCaches(false);
 		httpURLConnection.setDoOutput(true);
 
-		if ((PostData == null || PostData.isEmpty()) == false) {
+		if (PostData != null && !PostData.isEmpty()) {
 
 			byte[] btPostData = PostData.getBytes(Charset.forName("UTF-8"));
 
 			httpURLConnection.setRequestProperty("Content-Length",
 					String.valueOf(btPostData.length));
 
+			DataOutputStream output = null;
 			try {
-
-				DataOutputStream output = new DataOutputStream(
-						httpURLConnection.getOutputStream());
+				output = new DataOutputStream(httpURLConnection.getOutputStream());
 				output.write(btPostData);
 				output.flush();
-				output.close();
 			} catch (Exception e) {
 				throw new PopbillException(-99999999,
 						"Fail to POST data to Server.", e);
+			} finally {
+				try {
+					if(output!= null) {
+						output.close();
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 
 		}
 		String Result = "";
 
+		InputStream is = null;
 		try {
-			InputStream input = httpURLConnection.getInputStream();
+			is = httpURLConnection.getInputStream();
 			if (httpURLConnection.getContentEncoding().equals("gzip")) {
-				Result = fromGzipStream(input);
-			}else {
-				Result = fromStream(input);
+				Result = fromGzipStream(is);
+			} else {
+				Result = fromStream(is);
 			}
-			input.close();
 		} catch (IOException e) {
-
 			ErrorResponse error = null;
-
+			InputStream errorIs = null;
 			try {
-				InputStream input = httpURLConnection.getErrorStream();
-				Result = fromStream(input);
-				input.close();
+				errorIs = httpURLConnection.getErrorStream();
+				Result = fromStream(errorIs);
 				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception E) {
+			} catch (Exception ignored) { } finally {
+				try {
+					if(errorIs != null) {
+						errorIs.close();
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 
 			if (error == null)
@@ -432,6 +442,14 @@ public abstract class BaseServiceImp implements BaseService {
 						"Fail to receive data from Server.", e);
 			else
 				throw new PopbillException(error.getCode(), error.getMessage());
+		} finally {
+			try {
+				if (is != null) {
+					is.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return fromJsonString(Result, clazz);
@@ -462,7 +480,7 @@ public abstract class BaseServiceImp implements BaseService {
 			throw new PopbillException(-99999999, "팝빌 API 서버 접속 실패", e);
 		}
 
-		if (CorpNum != null && CorpNum.isEmpty() == false) {
+		if (CorpNum != null && !CorpNum.isEmpty()) {
 			httpURLConnection.setRequestProperty("Authorization", "Bearer "
 					+ getSessionToken(CorpNum, null));
 		}
@@ -473,7 +491,7 @@ public abstract class BaseServiceImp implements BaseService {
 		httpURLConnection.setRequestProperty("Content-Type",
 				"multipart/form-data;boundary=" + boundary);
 
-		if (UserID != null && UserID.isEmpty() == false) {
+		if (UserID != null && !UserID.isEmpty()) {
 			httpURLConnection.setRequestProperty("x-pb-userid", UserID);
 		}
 		
@@ -482,18 +500,16 @@ public abstract class BaseServiceImp implements BaseService {
 
 		try {
 			httpURLConnection.setRequestMethod("POST");
-		} catch (ProtocolException e1) {
-		}
+		} catch (ProtocolException ignored) {}
 
 		httpURLConnection.setUseCaches(false);
 		httpURLConnection.setDoOutput(true);
 
+		DataOutputStream output = null;
 		try {
+			output = new DataOutputStream(httpURLConnection.getOutputStream());
 
-			DataOutputStream output = new DataOutputStream(
-					httpURLConnection.getOutputStream());
-
-			if ((form == null || form.isEmpty()) == false) {
+			if (form != null && !form.isEmpty()) {
 				String formBody = "--" + boundary + CRLF;
 				formBody += "content-disposition: form-data; name=\"form\""
 						+ CRLF;
@@ -535,32 +551,46 @@ public abstract class BaseServiceImp implements BaseService {
 			output.write(btboundaryFooter);
 
 			output.flush();
-			output.close();
 		} catch (Exception e) {
 			throw new PopbillException(-99999999,
 					"Fail to POST data to Server.", e);
+		} finally {
+			try {
+				if(output != null) {
+					output.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		String Result = "";
 
+		InputStream input = null;
 		try {
-			InputStream input = httpURLConnection.getInputStream();
+			input = httpURLConnection.getInputStream();
 			if (httpURLConnection.getContentEncoding().equals("gzip")) {
 				Result = fromGzipStream(input);
 			}else {
 				Result = fromStream(input);
 			}
-			input.close();
 		} catch (IOException e) {
 
 			ErrorResponse error = null;
 
+			InputStream errorIs = null;
 			try {
-				InputStream input = httpURLConnection.getErrorStream();
-				Result = fromStream(input);
-				input.close();
+				errorIs = httpURLConnection.getErrorStream();
+				Result = fromStream(errorIs);
 				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception E) {
+			} catch (Exception ignored) { } finally {
+				try {
+					if (errorIs != null) {
+						errorIs.close();
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 
 			if (error == null)
@@ -568,6 +598,14 @@ public abstract class BaseServiceImp implements BaseService {
 						"Fail to receive data from Server.", e);
 			else
 				throw new PopbillException(error.getCode(), error.getMessage());
+		} finally {
+			try {
+				if (input != null) {
+					input.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return fromJsonString(Result, clazz);
@@ -592,7 +630,7 @@ public abstract class BaseServiceImp implements BaseService {
 			throw new PopbillException(-99999999, "팝빌 API 서버 접속 실패", e);
 		}
 
-		if (CorpNum != null && CorpNum.isEmpty() == false) {
+		if (CorpNum != null && !CorpNum.isEmpty()) {
 			httpURLConnection.setRequestProperty("Authorization", "Bearer "
 					+ getSessionToken(CorpNum, null));
 		}
@@ -600,7 +638,7 @@ public abstract class BaseServiceImp implements BaseService {
 		httpURLConnection.setRequestProperty("x-pb-version".toLowerCase(),
 				APIVersion);
 
-		if (UserID != null && UserID.isEmpty() == false) {
+		if (UserID != null && !UserID.isEmpty()) {
 			httpURLConnection.setRequestProperty("x-pb-userid", UserID);
 		}
 		
@@ -609,24 +647,31 @@ public abstract class BaseServiceImp implements BaseService {
 
 		String Result = "";
 
+		InputStream input = null;
 		try {
-			InputStream input = httpURLConnection.getInputStream();
+			input = httpURLConnection.getInputStream();
 			if (httpURLConnection.getContentEncoding().equals("gzip")) {
 				Result = fromGzipStream(input);
 			}else {
 				Result = fromStream(input);
 			}
-			input.close();
 		} catch (IOException e) {
 
 			ErrorResponse error = null;
 
+			InputStream errorIs = null;
 			try {
-				InputStream input = httpURLConnection.getErrorStream();
-				Result = fromStream(input);
-				input.close();
+				errorIs = httpURLConnection.getErrorStream();
+				Result = fromStream(errorIs);
 				error = fromJsonString(Result, ErrorResponse.class);
-			} catch (Exception E) {
+			} catch (Exception ignored) { } finally {
+				try {
+					if (errorIs != null) {
+						errorIs.close();
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 
 			if (error == null)
@@ -634,6 +679,14 @@ public abstract class BaseServiceImp implements BaseService {
 						"Fail to receive data from Server.", e);
 			else
 				throw new PopbillException(error.getCode(), error.getMessage());
+		} finally {
+			try {
+				if (input != null) {
+					input.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		return fromJsonString(Result, clazz);
