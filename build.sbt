@@ -13,6 +13,10 @@ crossPaths := false
 // This forbids including Scala related libraries into the dependency
 autoScalaLibrary := false
 
+publishArtifact in (Compile, packageDoc) := false
+publishArtifact in packageDoc := false
+sources in (Compile,doc) := Seq.empty
+
 libraryDependencies ++= Seq(
   "kr.co.linkhub" % "linkhub-auth" % "1.0.2",
   "com.google.code.gson" % "gson" % "2.3",
